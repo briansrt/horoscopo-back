@@ -1,0 +1,15 @@
+[
+  {
+    "user": "camilo",
+    "pass": "3112",
+    "role": "admin"
+  },
+  {
+    "user": "nando",
+    "pass": "nando99"
+  },
+  {
+    "user": "admin",
+    "pass": "admin43"
+  }
+]
