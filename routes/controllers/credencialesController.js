@@ -1,35 +1,42 @@
 const fs = require('fs/promises');
 const path = require('path');
-const { connectToDatabase } = require('../../db/mongo');
+const client = require('../../db/mongo');
 const CryptoJS = require('crypto-js');
 
 //---------------Login---------------------
 
+const client = require('../../db/mongo');  // Importa la conexión a MongoDB
+const bcrypt = require('bcrypt');  // Para manejar contraseñas de forma segura
+
+// Función para validar las credenciales
 const validateCredentials = async (req, res) => {
     const { username, password } = req.body;
-    const hashedPassword = CryptoJS.SHA256(password, process.env.CODE_SECRET_DATA).toString();
-    console.log("contraseña normal", password);
-    console.log("contraseña criptada", hashedPassword);
-    try {
-        // Lee las credenciales de los archivos correspondientes
-        const db = await connectToDatabase();
-        const usersCollection = db.collection('users');
-        const logLoginCollection = db.collection('log_login');
-        const login = await usersCollection.findOne({ nombre: username, pass: hashedPassword });
 
-        if (login) {
-            // Obtener la fecha y hora actual en formato Bogotá
-            const currentDateTime = moment().tz('America/Bogota').format('YYYY-MM-DD HH:mm:ss');
-            // Almacenar en la colección log_login
-            await logLoginCollection.insertOne({ nombre: username, role: login.role, date: currentDateTime });
-            res.json({ status: "Bienvenido", nombre: username, role: login.role});
-          } else {
-            res.json({ status: "ErrorCredenciales" });
-          }
+    try {
+        // Accede a la colección de usuarios en MongoDB
+        const db = client.db('horoscopo');  // Reemplaza con tu nombre de la base de datos
+        const usersCollection = db.collection('users');
+
+        // Busca el usuario por el nombre de usuario
+        const user = await usersCollection.findOne({ username: username });
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        // Verifica la contraseña usando bcrypt
+        const isPasswordValid = await CryptoJS.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Contraseña incorrecta' });
+        }
+
+        // Si es válido, responde con el rol del usuario
+        return res.status(200).json({ role: user.role });
 
     } catch (error) {
-        console.error('Error fetching user:', error);
-        res.status(500).json({ status: "Error", message: "Internal Server Error" });
+        console.error(error);
+        res.status(500).json({ message: 'Error en el servidor' });
     }
 };
 
