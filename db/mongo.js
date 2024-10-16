@@ -7,6 +7,7 @@ let clientPromise;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 if (!client) {
   client = new MongoClient(uri, {
+    ssl: true,  // Habilita SSL
     serverApi: {
       version: ServerApiVersion.v1,
       strict: true,
