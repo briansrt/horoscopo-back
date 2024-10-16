@@ -12,7 +12,7 @@ const validateCredentials = async (req, res) => {
     console.log("contraseña criptada", hashedPassword);
     try {
         // Lee las credenciales de los archivos correspondientes
-        const login =  await pool.db('horoscopo').collection('users').findOne({ nombre: username, password: hashedPassword });
+        const login =  await pool.db('horoscopo').collection('users').findOne({ nombre: username, pass: hashedPassword });
         if (login) {
             // Obtener la fecha y hora actual en formato Bogotá
             const currentDateTime = moment().tz('America/Bogota').format('YYYY-MM-DD HH:mm:ss');
