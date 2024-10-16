@@ -16,22 +16,45 @@ app.use(cors())
 app.use('/v1/signos', router);
 app.use('/v1/credenciales', credencialesRouter);
 
-connectToDatabase()
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`Server listening at http://localhost:${port}`);
-    });
-  })
-  .catch((error) => {
-    console.error('Failed to connect to MongoDB:', error);
-    process.exit(1);
-  });
+// Connect to MongoDB before handling requests
+let isConnected = false;
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await client.close();
-  console.log('MongoDB connection closed');
-  process.exit(0);
+async function connectToMongo() {
+  if (!isConnected) {
+    try {
+      await connectToDatabase();
+      isConnected = true;
+      console.log('Connected to MongoDB');
+    } catch (error) {
+      console.error('Failed to connect to MongoDB:', error);
+      throw error;
+    }
+  }
+}
+
+// Middleware to ensure database connection before processing requests
+app.use(async (req, res, next) => {
+  await connectToMongo();
+  next();
 });
+
+// Graceful shutdown (this won't work in Vercel's serverless environment, but keep it for local development)
+if (process.env.NODE_ENV !== 'production') {
+  process.on('SIGINT', async () => {
+    await client.close();
+    console.log('MongoDB connection closed');
+    process.exit(0);
+  });
+}
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`Server listening at http://localhost:${port}`);
+  });
+}
+
+// Export the Express app for Vercel
+module.exports = app;
 
 
