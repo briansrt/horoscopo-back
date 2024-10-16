@@ -5,9 +5,6 @@ const CryptoJS = require('crypto-js');
 
 //---------------Login---------------------
 
-const client = require('../../db/mongo');  // Importa la conexión a MongoDB
-const bcrypt = require('bcrypt');  // Para manejar contraseñas de forma segura
-
 // Función para validar las credenciales
 const validateCredentials = async (req, res) => {
     const { username, password } = req.body;
