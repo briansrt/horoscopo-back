@@ -1,6 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
-const pool = require('../../db/mongo');
+const { connectToDatabase } = require('../../db/mongo');
 const CryptoJS = require('crypto-js');
 
 //---------------Login---------------------
@@ -12,12 +12,16 @@ const validateCredentials = async (req, res) => {
     console.log("contraseña criptada", hashedPassword);
     try {
         // Lee las credenciales de los archivos correspondientes
-        const login =  await pool.db('horoscopo').collection('users').findOne({ nombre: username, pass: hashedPassword });
+        const db = await connectToDatabase();
+        const usersCollection = db.collection('users');
+        const logLoginCollection = db.collection('log_login');
+        const login = await usersCollection.findOne({ nombre: username, pass: hashedPassword });
+
         if (login) {
             // Obtener la fecha y hora actual en formato Bogotá
             const currentDateTime = moment().tz('America/Bogota').format('YYYY-MM-DD HH:mm:ss');
             // Almacenar en la colección log_login
-            await pool.db('horoscopo').collection('log_login').insertOne({ nombre: username, role: login.role, date: currentDateTime });
+            await logLoginCollection.insertOne({ nombre: username, role: login.role, date: currentDateTime });
             res.json({ status: "Bienvenido", nombre: username, role: login.role});
           } else {
             res.json({ status: "ErrorCredenciales" });

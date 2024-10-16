@@ -9,20 +9,28 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
+  },
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  maxIdleTimeMS: 30000,
+  connectTimeoutMS: 5000,
+});
+
+let dbConnection;
+
+const connectToDatabase = async () => {
+  if (dbConnection) return dbConnection;
+  
+  try {
+    const connection = await client.connect();
+    dbConnection = connection.db('horoscopo');
+    console.log('Connected to MongoDB');
+    return dbConnection;
+  } catch (error) {
+    console.error('Error connecting to MongoDB:', error);
+    throw error;
   }
-})
-
-const validatedb = async  () => {
-    try {
-      await  client.connect()
-      console.log('se conecto');
-    } catch (error) {
-      console.error(error);
-    }
-}
+};
 
 
-validatedb()
-
-
-module.exports = client;
+module.exports = { connectToDatabase, client };
