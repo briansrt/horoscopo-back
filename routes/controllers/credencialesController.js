@@ -1,12 +1,15 @@
 const fs = require('fs/promises');
 const path = require('path');
 const pool = require('../../db/mongo');
+const CryptoJS = require('crypto-js');
 
 //---------------Login---------------------
 
 const validateCredentials = async (req, res) => {
     const { username, password } = req.body;
     const hashedPassword = CryptoJS.SHA256(password, process.env.CODE_SECRET_DATA).toString();
+    console.log("contraseña normal", password);
+    console.log("contraseña criptada", hashedPassword);
     try {
         // Lee las credenciales de los archivos correspondientes
         const login =  await pool.db('horoscopo').collection('users').findOne({ nombre: username, password: hashedPassword });
