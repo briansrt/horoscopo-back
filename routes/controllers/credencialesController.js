@@ -1,6 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
-const client = require('../../db/mongo');
+const clientPromise  = require('../../db/mongo');
 const CryptoJS = require('crypto-js');
 
 //---------------Login---------------------
@@ -11,6 +11,7 @@ const validateCredentials = async (req, res) => {
 
     try {
         // Accede a la colección de usuarios en MongoDB
+        const client = await clientPromise;
         const db = client.db('horoscopo');  // Reemplaza con tu nombre de la base de datos
         const usersCollection = db.collection('users');
 
