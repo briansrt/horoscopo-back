@@ -30,48 +30,36 @@ const validateCredentials = async (req, res) => {
     }
   };
 
-const changePassword = async (req, res) => {
-    const { username, oldPassword, newPassword } = req.body;
-    
+  const changePassword = async (req, res) => {
+    const datos = req.body;
+    const hashedNewPassword = CryptoJS.SHA256(datos.newPassword, process.env.CODE_SECRET_DATA).toString();
+    const hashedOldPassword = CryptoJS.SHA256(datos.oldPassword, process.env.CODE_SECRET_DATA).toString();
+    console.log("Nueva Contraseña",hashedNewPassword);
+    console.log("contraseña actual",hashedOldPassword);
+
     try {
-        // Lee los archivos user.json y admin.json
-        const userPath = path.join(__dirname, '../../db/user.json');
-        const adminPath = path.join(__dirname, '../../db/admin.json');
-        
-        const userData = await fs.readFile(userPath, 'utf-8');
-        const adminData = await fs.readFile(adminPath, 'utf-8');
-        
-        const users = JSON.parse(userData);
-        const admins = JSON.parse(adminData);
+        const user = await pool.db('horoscopo').collection('users').findOne({ nombre: datos.username, pass: hashedOldPassword });
 
-        // Buscar y cambiar la contraseña en el archivo de usuarios
-        const userIndex = users.findIndex(u => u.user === username && u.pass === oldPassword);
-        if (userIndex !== -1) {
-            users[userIndex].pass = newPassword;
-            await fs.writeFile(userPath, JSON.stringify(users, null, 2), 'utf-8');
-            return res.json({ message: 'Contraseña cambiada con éxito para usuario' });
+        if (user) {
+            await pool.db('horoscopo').collection('users').updateOne(
+                { nombre: datos.username, pass: hashedOldPassword },
+                { $set: { pass: hashedNewPassword } }
+            );
+            res.status(200).json({ message: 'Contraseña cambiada con éxito' });
+        } else {
+            res.status(404).json({ message: 'Usuario o contraseña incorrectos' });
         }
-
-        // Buscar y cambiar la contraseña en el archivo de administradores
-        const adminIndex = admins.findIndex(a => a.user === username && a.pass === oldPassword);
-        if (adminIndex !== -1) {
-            admins[adminIndex].pass = newPassword;
-            await fs.writeFile(adminPath, JSON.stringify(admins, null, 2), 'utf-8');
-            return res.json({ message: 'Contraseña cambiada con éxito para administrador' });
-        }
-
-        // Si no se encontró el usuario o la contraseña anterior es incorrecta
-        return res.status(401).json({ message: 'Usuario o contraseña anterior incorrectos' });
-        
     } catch (error) {
+        console.error('Error al cambiar la contraseña:', error);
         res.status(500).json({ message: 'Error al cambiar la contraseña' });
     }
 };
 
+
 const createUser = async (req, res) => {
     const datos = req.body;
     const hashedPassword = CryptoJS.SHA256(datos.password, process.env.CODE_SECRET_DATA).toString();
-
+    console.log("Contraseña",hashedPassword);
     try {
         const userFind = await pool.db('horoscopo').collection('users').findOne({ nombre: datos.username });
         if (userFind) {
