@@ -69,34 +69,23 @@ const changePassword = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-    const { username, password, role } = req.body;
-    
+    const datos = req.body;
+    const hashedPassword = CryptoJS.SHA256(datos.password, process.env.CODE_SECRET_DATA).toString();
+
     try {
-        // Determina el archivo de destino según el rol
-        const filePath = role === 'admin' 
-            ? path.join(__dirname, '../../db/admin.json') 
-            : path.join(__dirname, '../../db/user.json');
-        
-        // Lee el archivo JSON correspondiente
-        const data = await fs.readFile(filePath, 'utf-8');
-        const users = JSON.parse(data);
-
-        // Verifica si el usuario ya existe
-        if (users.some(u => u.user === username)) {
-            return res.status(400).json({ message: 'El nombre de usuario ya existe' });
+        const userFind = await pool.db('horoscopo').collection('users').findOne({ nombre: datos.username });
+        if (userFind) {
+            res.status(409).json({ message: `El usuario ${datos.username} ya está creado` });
+        } else {
+            await pool.db('horoscopo').collection('users').insertOne({ nombre: datos.username, pass: hashedPassword, role: datos.role });
+            res.status(201).json({ message: `Usuario creado exitosamente como ${datos.role}` });
         }
-
-        // Agrega el nuevo usuario
-        users.push({ user: username, pass: password });
-        
-        // Guarda el archivo JSON actualizado
-        await fs.writeFile(filePath, JSON.stringify(users, null, 2), 'utf-8');
-
-        res.status(201).json({ message: `Usuario creado exitosamente como ${role}` });
     } catch (error) {
+        console.error('Error al crear el usuario:', error);
         res.status(500).json({ message: 'Error al crear el usuario' });
     }
 };
+
 
 module.exports = { validateCredentials, changePassword, createUser };
 
