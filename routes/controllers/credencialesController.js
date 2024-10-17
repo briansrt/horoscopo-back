@@ -1,42 +1,34 @@
 const fs = require('fs/promises');
 const path = require('path');
-const clientPromise  = require('../../db/mongo');
+const pool  = require('../../db/mongo');
 const CryptoJS = require('crypto-js');
+const moment = require('moment-timezone');
 
 //---------------Login---------------------
 
-// Función para validar las credenciales
 const validateCredentials = async (req, res) => {
-    const { username, password } = req.body;
-
-    try {
-        // Accede a la colección de usuarios en MongoDB
-        const client = await clientPromise;
-        const db = client.db('horoscopo');  // Reemplaza con tu nombre de la base de datos
-        const usersCollection = db.collection('users');
-
-        // Busca el usuario por el nombre de usuario
-        const user = await usersCollection.findOne({ username: username });
-
-        if (!user) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-
-        // Verifica la contraseña usando bcrypt
-        const isPasswordValid = await CryptoJS.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Contraseña incorrecta' });
-        }
-
-        // Si es válido, responde con el rol del usuario
-        return res.status(200).json({ role: user.role });
-
+    const datos = req.body;
+    //console.log("LOGIN: ", datos);
+    const hashedPassword = CryptoJS.SHA256(datos.password, process.env.CODE_SECRET_DATA).toString();
+    console.log("PASSS: ", hashedPassword);
+    try{
+      const users =  await pool.db('horoscopo').collection('users').find().toArray()
+      console.log("USERS: ", users);
+      const login =  await pool.db('horoscopo').collection('users').findOne({ nombre: datos.username, pass: hashedPassword });
+      if (login) {
+        // Obtener la fecha y hora actual en formato Bogotá
+        const currentDateTime = moment().tz('America/Bogota').format('YYYY-MM-DD HH:mm:ss');
+        // Almacenar en la colección log_login
+        await pool.db('horoscopo').collection('log_login').insertOne({ nombre: datos.username, role: login.role, date: currentDateTime });
+        res.json({ status: "Bienvenido", user: datos.email, role: login.role});
+      } else {
+        res.json({ status: "ErrorCredenciales" });
+      }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error en el servidor' });
+      console.error('Error fetching user:', error);
+      res.status(500).json({ status: "Error", message: "Internal Server Error" });
     }
-};
+  };
 
 const changePassword = async (req, res) => {
     const { username, oldPassword, newPassword } = req.body;
