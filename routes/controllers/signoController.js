@@ -1,37 +1,58 @@
 const fs = require('fs/promises');
 const path = require('path');
+const pool  = require('../../db/mongo');
 
 const getAllSignos = async (req, res)=>{
-    const signo = await fs.readFile(path.join(__dirname,'../../db/signos.json'));
-    const signosJson = JSON.parse(signo)
-    res.json(signosJson);
+    try{
+        const signos =  await pool.db('horoscopo').collection('signos').find().toArray()        
+        if (signos) {
+            console.log("signos encontrados", signos)
+          res.status(200).json({ message: 'Se consiguieron los signos' });
+        } else {
+            res.status(404).json({ message: 'No se consiguieron los signos' });
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ status: "Error", message: "Internal Server Error" });
+      }
 }
 
 const getOneSigno = async (req, res)=>{
-    const oneSigno = req.params.signo;
-    const allSignos = await fs.readFile(path.join(__dirname,'../../db/signos.json'));
-    const objSignos = JSON.parse(allSignos);
-    const result = objSignos[oneSigno];
-    res.json(result)
+    const datos = req.body;
+    try{
+        const signoFound =  await pool.db('horoscopo').collection('signos').findOne({nombre: datos.signo});
+        if (signoFound) {
+            console.log("signo encontrado", signoFound)
+            res.status(200).json({ message: signoFound.texto });
+        } else {
+            res.status(404).json({ message: 'No se consiguieron los signos' });
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ status: "Error", message: "Internal Server Error" });
+      }
 }
 
 const updateSigno = async (req, res)=>{
-    const signoEditar = req.params.signoEditar;
+    const datos = req.body;
     const {textoEditar} = req.body;
-    const allSignos = await fs.readFile(path.join(__dirname,'../../db/signos.json'));
-    const objSignos = JSON.parse(allSignos);
 
-    const objUpdate = {
-        ...objSignos,
-        [signoEditar]: textoEditar
+    try {
+        const signo = await pool.db('horoscopo').collection('signos').findOne({ nombre: datos.signoEditar });
+
+        if (signo) {
+            await pool.db('horoscopo').collection('signos').updateOne(
+                { nombre: datos.signoEditar },
+                { $set: { texto: textoEditar } }
+            );
+            res.status(200).json({ message: 'Texto cambiado con éxito' });
+        } else {
+            res.status(404).json({ message: 'Signo no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al cambiar el signo:', error);
+        res.status(500).json({ message: 'Error al cambiar el signo' });
     }
-
-    // console.log(objUpdate);
-    await fs.writeFile(path.join(__dirname,'../../db/signos.json'), JSON.stringify(objUpdate, null, 2), {encoding: 'utf-8'})
-
-    res.json({
-        message: "Updated"
-    })
 }
 
 module.exports = {
