@@ -36,15 +36,15 @@ const getOneSigno = async (req, res) => {
 };
 
 const updateSigno = async (req, res)=>{
-    const datos = req.body;
+    const dato = req.params.signoEditar;
     const {textoEditar} = req.body;
 
     try {
-        const signo = await pool.db('horoscopo').collection('signos').findOne({ nombre: datos.signoEditar });
+        const signo = await pool.db('horoscopo').collection('signos').findOne({ nombre: dato });
 
         if (signo) {
             await pool.db('horoscopo').collection('signos').updateOne(
-                { nombre: datos.signoEditar },
+                { nombre: dato },
                 { $set: { texto: textoEditar } }
             );
             res.status(200).json({ message: 'Texto cambiado con éxito' });
