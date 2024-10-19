@@ -17,21 +17,24 @@ const getAllSignos = async (req, res)=>{
       }
 }
 
-const getOneSigno = async (req, res)=>{
+const getOneSigno = async (req, res) => {
     const datos = req.body;
-    try{
+    console.log("Signo recibido:", datos.signo);  // Agrega esto para ver qué signo llega
+
+    try {
         const signoFound =  await pool.db('horoscopo').collection('signos').findOne({nombre: datos.signo});
         if (signoFound) {
-            console.log("signo encontrado", signoFound)
+            console.log("Signo encontrado en la base de datos:", signoFound);
             res.status(200).json({ message: signoFound.texto });
         } else {
             res.status(404).json({ message: 'No se consiguieron los signos' });
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Error fetching user:', error);
         res.status(500).json({ status: "Error", message: "Internal Server Error" });
-      }
-}
+    }
+};
+
 
 const updateSigno = async (req, res)=>{
     const datos = req.body;
